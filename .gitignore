@@ -1,0 +1,25 @@
+# Ambiente Virtual
+venv/
+env/
+ENV/
+.env
+venv-mc906
+
+# Byte-compiled / arquivos de cache do Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Pastas de IDEs (opcional, mas recomendado)
+.vscode/
+.idea/
+
+# Arquivos do Sistema Operacional
+.DS_Store
+Thumbs.db
+
+# Distribuição / Pacotes
+dist/
+build/
+*.egg-info/
