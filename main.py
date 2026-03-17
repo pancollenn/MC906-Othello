@@ -1,7 +1,7 @@
 import pygame
 
-from othello.constants import WIDTH, HEIGHT
-from othello.board import Board
+from othello.constants import WIDTH, HEIGHT, SQUARE_SIZE
+from othello.game import Game
 
 FPS = 60
 
@@ -11,7 +11,7 @@ pygame.display.set_caption('Othello')
 def main():
     run = True
     clock = pygame.time.Clock()
-    board = Board()
+    game = Game(WIN)
     
     while run:
         clock.tick(FPS)
@@ -21,11 +21,12 @@ def main():
                 run = False
 
             if event.type == pygame.MOUSEBUTTONDOWN:
-                pass
+                pos = pygame.mouse.get_pos() # pos = (coordenada col, coordenada row)
+                # Converte coordenadas de pixels para (row, col)
+                row, col = pos[1] // SQUARE_SIZE, pos[0] // SQUARE_SIZE
+                game.select(row, col)
 
-        board.draw_squares(WIN)
-        board.draw_pieces(WIN)
-        pygame.display.update()
+        game.update()
 
     pygame.quit()
 
