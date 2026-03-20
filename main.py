@@ -2,6 +2,7 @@ import pygame
 
 from othello.constants import WIDTH, HEIGHT, SQUARE_SIZE
 from othello.game import Game
+from minimax.algorithm import minimax
 
 FPS = 60
 
@@ -15,6 +16,13 @@ def main():
     
     while run:
         clock.tick(FPS)
+
+        if not game.game_over and game.turn == -1: # Se for a vez do Branco (IA)
+            pygame.time.wait(1000)
+            # Chama o minimax com profundidade 3 (ajuste conforme a performance)
+            _, move = minimax(game.board, 3, True, -1)
+            if move:
+                game.select(move[0], move[1])
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
