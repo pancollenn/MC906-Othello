@@ -99,7 +99,7 @@ class Board:
         """Altera a cor das peças do oponente até encontrar a peça do jogador."""
         curr_r, curr_c = row + dr, col + dc
         opponent = -player
-        while self.matrix[curr_r, curr_c] == opponent:
+        while 0 <= curr_r < ROWS and 0 <= curr_c < COLS and self.matrix[curr_r, curr_c] == opponent:
             self.matrix[curr_r, curr_c] = player
             curr_r += dr
             curr_c += dc
