@@ -1,24 +1,44 @@
 import numpy as np
 from minimax.heuristics import evaluate
 
+MOVE_ORDER_WEIGHTS = {
+    # Cantos (Melhor jogada possível)
+    (0,0): 100, (0,7): 100, (7,0): 100, (7,7): 100,
+    
+    # X-Squares (Piores jogadas possíveis, dão o canto de graça)
+    (1,1): -50, (1,6): -50, (6,1): -50, (6,6): -50,
+    
+    # C-Squares (Muito ruins)
+    (0,1): -20, (1,0): -20, (0,6): -20, (1,7): -20,
+    (6,0): -20, (7,1): -20, (6,7): -20, (7,6): -20,
+    
+    # Sweet-16 (O miolo central, neutro/bom no início)
+    (2,2): 5, (2,3): 5, (2,4): 5, (2,5): 5,
+    (3,2): 5, (3,5): 5, (4,2): 5, (4,5): 5,
+    (5,2): 5, (5,3): 5, (5,4): 5, (5,5): 5,
+}
 
-def order_moves(board, valid_moves, current_turn_color, is_maximizing, ai_color, heuristic_type="dynamic"):
+def order_moves(valid_moves):
     """
-    Ordena os movimentos avaliando a posição resultante de cada um.
+    Ordenação ULTRARRÁPIDA. 
+    Não faz cópias de tabuleiro, não simula jogadas.
+    Apenas olha a coordenada do movimento e atribui uma prioridade estática.
     """
     move_scores = []
     
     for move in valid_moves:
-        temp_board = board.copy()
-        temp_board.make_move(move[0], move[1], current_turn_color)
+        row, col = move
+        # Pega a nota daquela coordenada. Se não estiver no dict, a nota é 0.
+        score = MOVE_ORDER_WEIGHTS.get((row, col), 0)
         
-        # Avalia o tabuleiro resultante do ponto de vista da IA
-        score = evaluate(temp_board, ai_color, heuristic_type)
         move_scores.append((score, move))
     
-    move_scores.sort(key=lambda x: x[0], reverse=is_maximizing)
+    # MAX quer os maiores scores primeiro. MIN quer os menores.
+    # Mas no Move Ordering estático para Alpha-Beta, nós SEMPRE queremos testar
+    # as jogadas "boas" (positivas) primeiro, não importa de quem seja a vez,
+    # porque as jogadas boas do MIN também são as que cortam o MAX mais rápido.
+    move_scores.sort(key=lambda x: x[0], reverse=True)
     
-    # Extrai apenas as coordenadas ordenadas
     return [item[1] for item in move_scores]
 
 def minimax(board, depth, alpha, beta, max_player, player_color, heuristic_type="dynamic"):
@@ -52,7 +72,7 @@ def minimax(board, depth, alpha, beta, max_player, player_color, heuristic_type=
     if depth == 0:
         return evaluate(board, player_color, heuristic_type), None
 
-    valid_moves = order_moves(board, valid_moves, current_turn_color, max_player, player_color, heuristic_type)
+    valid_moves = order_moves(valid_moves)
     
     best_move = None
     
