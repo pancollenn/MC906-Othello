@@ -39,11 +39,27 @@ def minimax(board, depth, alpha, beta, max_player, player_color):
     beta: Melhor opção já garantida para o Minimizador (inicialmente float('inf'))
     """
     # Define de quem é o turno na simulação atual
-    current_turn_color = player_color if max_player else ~player_color
+    current_turn_color = player_color if max_player else -player_color
     
-    # Caso base: profundidade alcançada ou fim de jogo
+    # Casos base: profundidade alcançada ou fim de jogo
     valid_moves = board.get_valid_moves(current_turn_color)
-    if depth == 0 or not valid_moves:
+
+    # Caso precise passar a vez
+    if not valid_moves:
+        # Verifica se o oponente tem movimentos
+        opponent_color = -current_turn_color
+        opponent_moves = board.get_valid_moves(opponent_color)
+        
+        if not opponent_moves:
+            # Fim de jogo real: Nenhum dos dois tem jogadas válidas
+            return evaluate(board, player_color), None
+        else:
+            # Passa a vez: Chama o minimax com o MESMO tabuleiro, mas inverte o max_player
+            # Menor profundidade para evitar loops infinitos caso fiquem passando a vez
+            eval_score, _ = minimax(board, depth - 1, alpha, beta, not max_player, player_color)
+            return eval_score, None # None porque não há jogada a ser feita, apenas passa a vez
+
+    if depth == 0:
         return evaluate(board, player_color), None
     
     valid_moves = order_moves(board, valid_moves, current_turn_color, max_player, player_color)
@@ -74,7 +90,7 @@ def minimax(board, depth, alpha, beta, max_player, player_color):
         min_eval = float('inf')
         for move in valid_moves:
             temp_board = board.copy()
-            temp_board.make_move(move[0], move[1], ~player_color)
+            temp_board.make_move(move[0], move[1], -player_color)
 
             eval, _ = minimax(temp_board, depth-1, alpha, beta, True, player_color)
 
