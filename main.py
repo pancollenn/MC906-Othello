@@ -2,9 +2,11 @@ import pygame
 
 from othello.constants import WIDTH, HEIGHT, SQUARE_SIZE
 from othello.game import Game
-from minimax.algorithm import minimax
+from minimax.algorithm import iterative_deepening
 
 FPS = 60
+AI_TIME_LIMIT_SECONDS = 2.5
+AI_MAX_DEPTH = 60
 
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption('Othello')
@@ -18,9 +20,15 @@ def main():
         clock.tick(FPS)
 
         if not game.game_over and game.turn == -1: # Se for a vez do Branco (IA)
-            pygame.time.wait(1000)
-            # Chama o minimax com profundidade 3 (ajuste conforme a performance)
-            _, move = minimax(game.board, 3, float('-inf'), float('inf'), True, -1)
+            #pygame.time.wait(1000)
+            _, move, depth = iterative_deepening(
+                game.board,
+                -1,
+                time_limit=AI_TIME_LIMIT_SECONDS,
+                max_depth=AI_MAX_DEPTH,
+                heuristic_type="dynamic",
+            )
+            print(f"IA concluiu profundidade {depth}")
             if move:
                 game.select(move[0], move[1])
 
