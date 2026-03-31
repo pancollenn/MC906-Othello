@@ -1,18 +1,8 @@
 import numpy as np
+from minimax.heuristics import evaluate
 
-def evaluate(board, player_color):
-    """
-    Heurística: Saldo de peças relativo ao jogador da IA.
-    Se a IA é branca, quer maximizar (Brancas - Pretas).
-    """
-    black, white = board.get_score()
-    # Retorna o saldo do ponto de vista da cor da IA
-    if player_color == 1: # Preto
-        return black - white
-    else: # Branco
-        return white - black
 
-def order_moves(board, valid_moves, current_turn_color, is_maximizing, ai_color):
+def order_moves(board, valid_moves, current_turn_color, is_maximizing, ai_color, heuristic_type="dynamic"):
     """
     Ordena os movimentos avaliando a posição resultante de cada um.
     """
@@ -23,7 +13,7 @@ def order_moves(board, valid_moves, current_turn_color, is_maximizing, ai_color)
         temp_board.make_move(move[0], move[1], current_turn_color)
         
         # Avalia o tabuleiro resultante do ponto de vista da IA
-        score = evaluate(temp_board, ai_color)
+        score = evaluate(temp_board, ai_color, heuristic_type)
         move_scores.append((score, move))
     
     move_scores.sort(key=lambda x: x[0], reverse=is_maximizing)
@@ -31,7 +21,7 @@ def order_moves(board, valid_moves, current_turn_color, is_maximizing, ai_color)
     # Extrai apenas as coordenadas ordenadas
     return [item[1] for item in move_scores]
 
-def minimax(board, depth, alpha, beta, max_player, player_color):
+def minimax(board, depth, alpha, beta, max_player, player_color, heuristic_type="dynamic"):
     """
     Algoritmo Minimax: player_color: 1 para Preto, -1 para Branco
     Algoritmo Minimax com Poda Alpha-Beta.
@@ -52,17 +42,17 @@ def minimax(board, depth, alpha, beta, max_player, player_color):
         
         if not opponent_moves:
             # Fim de jogo real: Nenhum dos dois tem jogadas válidas
-            return evaluate(board, player_color), None
+            return evaluate(board, player_color, heuristic_type), None
         else:
             # Passa a vez: Chama o minimax com o MESMO tabuleiro, mas inverte o max_player
             # Menor profundidade para evitar loops infinitos caso fiquem passando a vez
-            eval_score, _ = minimax(board, depth - 1, alpha, beta, not max_player, player_color)
+            eval_score, _ = minimax(board, depth - 1, alpha, beta, not max_player, player_color, heuristic_type)
             return eval_score, None # None porque não há jogada a ser feita, apenas passa a vez
 
     if depth == 0:
-        return evaluate(board, player_color), None
-    
-    valid_moves = order_moves(board, valid_moves, current_turn_color, max_player, player_color)
+        return evaluate(board, player_color, heuristic_type), None
+
+    valid_moves = order_moves(board, valid_moves, current_turn_color, max_player, player_color, heuristic_type)
     
     best_move = None
     
@@ -73,7 +63,7 @@ def minimax(board, depth, alpha, beta, max_player, player_color):
             temp_board = board.copy()
             temp_board.make_move(move[0], move[1], player_color)
 
-            eval, _ = minimax(temp_board, depth-1, alpha, beta, False, player_color)
+            eval, _ = minimax(temp_board, depth-1, alpha, beta, False, player_color, heuristic_type)
 
             if eval > max_eval:
                 max_eval = eval
@@ -92,7 +82,7 @@ def minimax(board, depth, alpha, beta, max_player, player_color):
             temp_board = board.copy()
             temp_board.make_move(move[0], move[1], -player_color)
 
-            eval, _ = minimax(temp_board, depth-1, alpha, beta, True, player_color)
+            eval, _ = minimax(temp_board, depth-1, alpha, beta, True, player_color, heuristic_type)
 
             if eval < min_eval:
                 min_eval = eval
