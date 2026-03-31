@@ -1,9 +1,12 @@
+import os
+# Silencia o Pygame ANTES de qualquer outro import acontecer
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "1"
 
 import random
 import time
 import concurrent.futures
 
-from minimax.algorithm import minimax
+from minimax.algorithm import iterative_deepening
 from othello.board import Board
 
 def play_match(heuristic_black, heuristic_white, random_openings=4, seed=None):
@@ -40,9 +43,7 @@ def play_match(heuristic_black, heuristic_white, random_openings=4, seed=None):
             # Chama o algoritmo de busca. 
             # Dica: Passar a heurística como string para o minimax decidir lá dentro.
             # Estamos usando uma profundidade fixa para o teste de win-rate puro.
-            _, best_move = minimax(board, depth=4, alpha=float('-inf'), beta=float('inf'), 
-                                   max_player=True, player_color=current_player, 
-                                   heuristic_type=current_heuristic)
+            _, best_move, _ = iterative_deepening(board, player_color=current_player, time_limit=0.95, max_depth=4, heuristic_type=current_heuristic)
             
         # Executa a jogada
         board.make_move(best_move[0], best_move[1], current_player)
@@ -161,10 +162,10 @@ def run_tournament_parallel(agent_a, agent_b, num_matches=20):
 # Para testar (quando o minimax e as heurísticas estiverem integrados):
 if __name__ == "__main__":
     # Teste 1: Nossa heurística top contra a burrinha
-    run_tournament_parallel("dynamic", "greedy", num_matches=20)
+    run_tournament_parallel("dynamic", "greedy", num_matches=50)
     
     # Teste 2: Heurística posicional contra a burrinha
-    run_tournament_parallel("static", "greedy", num_matches=20)
+    run_tournament_parallel("static", "greedy", num_matches=50)
     
     # Teste 3: A batalha final (Qual das nossas estratégias é melhor?)
-    run_tournament_parallel("dynamic", "static", num_matches=20)
+    run_tournament_parallel("dynamic", "static", num_matches=50)
