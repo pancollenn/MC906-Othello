@@ -9,7 +9,22 @@ import concurrent.futures
 from minimax.algorithm import iterative_deepening
 from othello.board import Board
 
-def play_match(heuristic_black, heuristic_white, random_openings=4, seed=None):
+MAX_DEPTH_CAP = 6
+
+
+def _cap_depth(depth, cap=MAX_DEPTH_CAP):
+    """Normaliza profundidade para inteiro no intervalo [1, cap]."""
+    return max(1, min(int(depth), cap))
+
+
+def play_match(
+    heuristic_black,
+    heuristic_white,
+    max_depth_black,
+    max_depth_white,
+    random_openings,
+    seed=None,
+):
     """
     Roda UMA partida completa sem interface gráfica.
     Retorna 1 se Pretas venceram, -1 se Brancas venceram, 0 se empate.
@@ -18,6 +33,8 @@ def play_match(heuristic_black, heuristic_white, random_openings=4, seed=None):
         random.seed(seed)
 
     board = Board()
+    max_depth_black = _cap_depth(max_depth_black)
+    max_depth_white = _cap_depth(max_depth_white)
     current_player = 1 # 1 (Pretas) começam
     move_count = 0
     
@@ -35,6 +52,7 @@ def play_match(heuristic_black, heuristic_white, random_openings=4, seed=None):
                 
         # Define qual IA vai jogar
         current_heuristic = heuristic_black if current_player == 1 else heuristic_white
+        current_max_depth = max_depth_black if current_player == 1 else max_depth_white
         
         # Abertura Aleatória para gerar diversidade de partidas
         if move_count < random_openings:
@@ -43,7 +61,13 @@ def play_match(heuristic_black, heuristic_white, random_openings=4, seed=None):
             # Chama o algoritmo de busca. 
             # Dica: Passar a heurística como string para o minimax decidir lá dentro.
             # Estamos usando uma profundidade fixa para o teste de win-rate puro.
-            _, best_move, _ = iterative_deepening(board, player_color=current_player, time_limit=0.95, max_depth=4, heuristic_type=current_heuristic)
+            _, best_move, _ = iterative_deepening(
+                board,
+                player_color=current_player,
+                time_limit=0.95,
+                max_depth=current_max_depth,
+                heuristic_type=current_heuristic,
+            )
             
         # Executa a jogada
         board.make_move(best_move[0], best_move[1], current_player)
@@ -56,7 +80,7 @@ def play_match(heuristic_black, heuristic_white, random_openings=4, seed=None):
     elif white_score > black_score: return -1
     else: return 0
 
-def run_tournament(agent_a, agent_b, num_matches=20):
+def run_tournament(agent_a, agent_b, depth_a=4, depth_b=4, num_matches=20):
     """
     Faz os agentes se enfrentarem. Eles devem alternar as cores, 
     pois começar jogando (Pretas) dá uma vantagem tática inicial.
@@ -66,18 +90,20 @@ def run_tournament(agent_a, agent_b, num_matches=20):
     draws = 0
 
     start_time = time.perf_counter()
+    depth_a = _cap_depth(depth_a)
+    depth_b = _cap_depth(depth_b)
     
-    print(f"--- Torneio: {agent_a} vs {agent_b} ({num_matches} partidas) ---")
+    print(f"--- Torneio: {agent_a}(d={depth_a}) vs {agent_b}(d={depth_b}) ({num_matches} partidas) ---")
     
     for i in range(num_matches):
         # Alterna as cores para ser justo
         if i % 2 == 0:
-            winner = play_match(agent_a, agent_b, seed=i)
+            winner = play_match(agent_a, agent_b, depth_a, depth_b, seed=i)
             if winner == 1: wins_a += 1
             elif winner == -1: wins_b += 1
             else: draws += 1
         else:
-            winner = play_match(agent_b, agent_a, seed=i)
+            winner = play_match(agent_b, agent_a, depth_b, depth_a, seed=i)
             # Como agent_b jogou de pretas (1), se winner == 1, B venceu
             if winner == 1: wins_b += 1
             elif winner == -1: wins_a += 1
@@ -95,7 +121,7 @@ def run_tournament(agent_a, agent_b, num_matches=20):
     print(f"Tempo total: {elapsed_s:.2f}s (média: {avg_s:.2f}s/partida)")
     print("=======================\n")
 
-def run_tournament_parallel(agent_a, agent_b, num_matches=20):
+def run_tournament_parallel(agent_a, agent_b, depth_a=4, depth_b=4, num_matches=20):
     """
     Faz os agentes se enfrentarem rodando as partidas em PARALELO 
     usando todos os núcleos do processador.
@@ -105,23 +131,28 @@ def run_tournament_parallel(agent_a, agent_b, num_matches=20):
     draws = 0
 
     start_time = time.perf_counter()
+    depth_a = _cap_depth(depth_a)
+    depth_b = _cap_depth(depth_b)
     
-    print(f"--- Torneio: {agent_a} vs {agent_b} ({num_matches} partidas) ---")
+    print(f"--- Torneio: {agent_a}(d={depth_a}) vs {agent_b}(d={depth_b}) ({num_matches} partidas) ---")
     print("Iniciando processamento paralelo... Os resultados aparecerão fora de ordem.")
     
     # 1. Preparamos a lista de confrontos, alternando as cores
     matches = []
     for i in range(num_matches):
         if i % 2 == 0:
-            matches.append((agent_a, agent_b)) # A de Pretas
+            matches.append((agent_a, depth_a, agent_b, depth_b)) # A de Pretas
         else:
-            matches.append((agent_b, agent_a)) # B de Pretas
+            matches.append((agent_b, depth_b, agent_a, depth_a)) # B de Pretas
 
     # 2. Iniciamos o Pool de Processos (usa 100% do seu processador)
     with concurrent.futures.ProcessPoolExecutor() as executor:
         # Submete todas as partidas simultaneamente.
         # Guardamos um dicionário vinculando a "promessa" (future) aos agentes que estão jogando.
-        futures = {executor.submit(play_match, black, white, seed=i): (black, white) for i, (black, white) in enumerate(matches)}
+        futures = {
+            executor.submit(play_match, black, white, black_depth, white_depth, seed=i): (black, white)
+            for i, (black, black_depth, white, white_depth) in enumerate(matches)
+        }
         
         partidas_concluidas = 0
         
@@ -161,11 +192,39 @@ def run_tournament_parallel(agent_a, agent_b, num_matches=20):
 
 # Para testar (quando o minimax e as heurísticas estiverem integrados):
 if __name__ == "__main__":
-    # Teste 1: Nossa heurística top contra a burrinha
-    run_tournament_parallel("dynamic", "greedy", num_matches=50)
-    
-    # Teste 2: Heurística posicional contra a burrinha
-    run_tournament_parallel("static", "greedy", num_matches=50)
-    
-    # Teste 3: A batalha final (Qual das nossas estratégias é melhor?)
-    run_tournament_parallel("dynamic", "static", num_matches=50)
+    tournaments_to_run = [
+        # Teste 1: Nossa heurística top contra a burrinha
+        ("dynamic", "greedy", 60, 60, 50),
+        # Teste 2: Heurística posicional contra a burrinha
+        ("static", "greedy", 60, 60, 50),
+        # Teste 3: A batalha final (Qual das nossas estratégias é melhor?)
+        ("dynamic", "static", 60, 60, 50),
+
+        # Teste 4: heurística inteligente, mas com profundidade limita vs heurística burra, mas com profundidade máxima (Será que a profundidade compensa a burrice?)
+        ("dynamic", "greedy", 4, 6, 50),
+
+        # Teste 5: heurística inteligente 2, mas com profundidade limita vs heurística burra, mas com profundidade máxima (Será que a profundidade compensa a burrice?)
+        ("static", "greedy", 4, 6, 50),
+
+        # Teste 6: Duas heurísticas fortes, mas com profundidade limita.
+        # Será que o resultado muda com relação ao teste 3?
+        ("static", "dynamic", 4, 4, 50),
+
+
+        #Testar com profundidade 1. A ideia é avaliar as heuristicas de maneira bruta
+        # Teste 7
+        ("dynamic", "greedy", 1, 1, 50),
+        # Teste 8:
+        ("static", "greedy", 1, 1, 50),
+        # Teste 9:
+        ("dynamic", "static", 60, 60, 50)
+    ]
+
+    print("=== TORNEIOS PROGRAMADOS ===")
+    print(f"Total: {len(tournaments_to_run)} torneios")
+    for i, (agent_a, agent_b, depth_a, depth_b, num_matches) in enumerate(tournaments_to_run, start=1):
+        print(f"{i}. {agent_a}(d={depth_a}) vs {agent_b}(d={depth_b}) - {num_matches} partidas")
+    print("============================\n")
+
+    for agent_a, agent_b, depth_a, depth_b, num_matches in tournaments_to_run:
+        run_tournament_parallel(agent_a, agent_b, depth_a=depth_a, depth_b=depth_b, num_matches=num_matches)
