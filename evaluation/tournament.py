@@ -177,37 +177,39 @@ def run_tournament_parallel(agent_a, agent_b, depth_a=4, depth_b=4, num_matches=
     print(f"[Iniciando] Torneio: {agent_a}(d={depth_a}) vs {agent_b}(d={depth_b}) ({num_matches} partidas)")
     print("  Processando em paralelo...")
     
-    # 1. Preparamos a lista de confrontos, alternando as cores
+    # 1. Preparamos a lista de confrontos, alternando as cores.
+    # Guardamos também o "dono" de cada cor para contabilizar A/B corretamente
+    # mesmo quando agent_a == agent_b (ex.: dynamic vs dynamic).
     matches = []
     for i in range(num_matches):
         if i % 2 == 0:
-            matches.append((agent_a, depth_a, agent_b, depth_b)) # A de Pretas
+            matches.append((agent_a, depth_a, agent_b, depth_b, "A", "B")) # A de Pretas
         else:
-            matches.append((agent_b, depth_b, agent_a, depth_a)) # B de Pretas
+            matches.append((agent_b, depth_b, agent_a, depth_a, "B", "A")) # B de Pretas
 
     # 2. Iniciamos o Pool de Processos (usa 100% do seu processador)
     with concurrent.futures.ProcessPoolExecutor() as executor:
         # Submete todas as partidas simultaneamente.
         # Guardamos um dicionário vinculando a "promessa" (future) aos agentes que estão jogando.
         futures = {
-            executor.submit(play_match, black, white, black_depth, white_depth, seed=i): (black, white)
-            for i, (black, black_depth, white, white_depth) in enumerate(matches)
+            executor.submit(play_match, black, white, black_depth, white_depth, seed=i): (black_owner, white_owner)
+            for i, (black, black_depth, white, white_depth, black_owner, white_owner) in enumerate(matches)
         }
         
         partidas_concluidas = 0
         
         # 3. as_completed libera o resultado assim que qualquer partida terminar
         for future in concurrent.futures.as_completed(futures):
-            black, white = futures[future] # Descobre quem estava jogando nesta partida
+            black_owner, white_owner = futures[future] # Descobre dono das cores nesta partida
             try:
                 winner = future.result() # Pega o resultado (1, -1 ou 0)
                 
                 # Contabiliza os pontos corretamente
                 if winner == 1: # Pretas ganharam
-                    if black == agent_a: wins_a += 1
+                    if black_owner == "A": wins_a += 1
                     else: wins_b += 1
                 elif winner == -1: # Brancas ganharam
-                    if white == agent_a: wins_a += 1
+                    if white_owner == "A": wins_a += 1
                     else: wins_b += 1
                 else:
                     draws += 1
@@ -257,7 +259,11 @@ if __name__ == "__main__":
         # Teste 8:
         ("static", "greedy", 1, 1, 25),
         # Teste 9:
-        ("dynamic", "static", 1, 1, 25)
+        ("dynamic", "static", 1, 1, 25),
+
+        ("static", "static", 4, 6, 25),
+        ("dynamic", "dynamic", 4, 6, 25),
+        ("greedy", "greedy", 4, 6, 25),
     ]
 
     print("=== TORNEIOS PROGRAMADOS ===")
