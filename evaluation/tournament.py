@@ -5,11 +5,15 @@ os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "1"
 import random
 import time
 import concurrent.futures
+from datetime import datetime
+from pathlib import Path
 
 from minimax.algorithm import iterative_deepening
 from othello.board import Board
 
-MAX_DEPTH_CAP = 6
+MAX_DEPTH_CAP = 60
+RESULTS_DIR = Path(__file__).parent / "results"
+
 
 
 def _cap_depth(depth, cap=MAX_DEPTH_CAP):
@@ -17,12 +21,52 @@ def _cap_depth(depth, cap=MAX_DEPTH_CAP):
     return max(1, min(int(depth), cap))
 
 
+def _ensure_results_dir():
+    """Cria o diretório de resultados se não existir."""
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _get_results_filename(agent_a, agent_b, depth_a, depth_b):
+    """Gera um nome de arquivo único para os resultados."""
+    #timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    return f"{agent_a}_vs_{agent_b}_{depth_a}vs{depth_b}.txt"
+
+
+def _save_results(agent_a, agent_b, depth_a, depth_b, wins_a, wins_b, draws, elapsed_s, num_matches):
+    """Salva os resultados do torneio em um arquivo."""
+    _ensure_results_dir()
+    
+    filename = _get_results_filename(agent_a, agent_b, depth_a, depth_b)
+    filepath = RESULTS_DIR / filename
+    
+    avg_s = elapsed_s / num_matches if num_matches else 0.0
+    
+    content = f"""=== TORNEIO: {agent_a}(d={depth_a}) vs {agent_b}(d={depth_b}) ===
+Data: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+Número de partidas: {num_matches}
+
+--- RESULTADO FINAL ---
+Vitórias {agent_a}: {wins_a} ({(wins_a/num_matches)*100:.1f}%)
+Vitórias {agent_b}: {wins_b} ({(wins_b/num_matches)*100:.1f}%)
+Empates: {draws}
+
+Tempo total: {elapsed_s:.2f}s
+Média por partida: {avg_s:.2f}s
+
+"""
+    
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write(content)
+    
+    return filepath
+
+
 def play_match(
     heuristic_black,
     heuristic_white,
     max_depth_black,
     max_depth_white,
-    random_openings,
+    random_openings = 10,
     seed=None,
 ):
     """
@@ -93,7 +137,7 @@ def run_tournament(agent_a, agent_b, depth_a=4, depth_b=4, num_matches=20):
     depth_a = _cap_depth(depth_a)
     depth_b = _cap_depth(depth_b)
     
-    print(f"--- Torneio: {agent_a}(d={depth_a}) vs {agent_b}(d={depth_b}) ({num_matches} partidas) ---")
+    print(f"[Iniciando] Torneio: {agent_a}(d={depth_a}) vs {agent_b}(d={depth_b}) ({num_matches} partidas)")
     
     for i in range(num_matches):
         # Alterna as cores para ser justo
@@ -109,17 +153,13 @@ def run_tournament(agent_a, agent_b, depth_a=4, depth_b=4, num_matches=20):
             elif winner == -1: wins_a += 1
             else: draws += 1
             
-        print(f"Partida {i+1}/{num_matches} concluída...")
+        print(f"  Partida {i+1}/{num_matches} concluída")
 
     elapsed_s = time.perf_counter() - start_time
-    avg_s = elapsed_s / num_matches if num_matches else 0.0
-        
-    print("\n=== RESULTADO FINAL ===")
-    print(f"Vitórias {agent_a}: {wins_a} ({(wins_a/num_matches)*100:.1f}%)")
-    print(f"Vitórias {agent_b}: {wins_b} ({(wins_b/num_matches)*100:.1f}%)")
-    print(f"Empates: {draws}")
-    print(f"Tempo total: {elapsed_s:.2f}s (média: {avg_s:.2f}s/partida)")
-    print("=======================\n")
+    
+    # Salva resultados em arquivo
+    filepath = _save_results(agent_a, agent_b, depth_a, depth_b, wins_a, wins_b, draws, elapsed_s, num_matches)
+    print(f"[Concluído] Resultados salvos em: {filepath}\n")
 
 def run_tournament_parallel(agent_a, agent_b, depth_a=4, depth_b=4, num_matches=20):
     """
@@ -134,8 +174,8 @@ def run_tournament_parallel(agent_a, agent_b, depth_a=4, depth_b=4, num_matches=
     depth_a = _cap_depth(depth_a)
     depth_b = _cap_depth(depth_b)
     
-    print(f"--- Torneio: {agent_a}(d={depth_a}) vs {agent_b}(d={depth_b}) ({num_matches} partidas) ---")
-    print("Iniciando processamento paralelo... Os resultados aparecerão fora de ordem.")
+    print(f"[Iniciando] Torneio: {agent_a}(d={depth_a}) vs {agent_b}(d={depth_b}) ({num_matches} partidas)")
+    print("  Processando em paralelo...")
     
     # 1. Preparamos a lista de confrontos, alternando as cores
     matches = []
@@ -173,51 +213,51 @@ def run_tournament_parallel(agent_a, agent_b, depth_a=4, depth_b=4, num_matches=
                     draws += 1
                     
                 partidas_concluidas += 1
-                print(f"Partida {partidas_concluidas}/{num_matches} concluída...")
+                print(f"  Partida {partidas_concluidas}/{num_matches} concluída")
                 
             except Exception as exc:
-                print(f"⚠️ Erro fatal em uma das partidas: {exc}")
+                print(f"  ⚠️ Erro fatal em uma das partidas: {exc}")
                 partidas_concluidas += 1
                 draws +=1
 
     elapsed_s = time.perf_counter() - start_time
-    avg_s = elapsed_s / num_matches if num_matches else 0.0
-        
-    print("\n=== RESULTADO FINAL ===")
-    print(f"Vitórias {agent_a}: {wins_a} ({(wins_a/num_matches)*100:.1f}%)")
-    print(f"Vitórias {agent_b}: {wins_b} ({(wins_b/num_matches)*100:.1f}%)")
-    print(f"Empates: {draws}")
-    print(f"Tempo total: {elapsed_s:.2f}s (média: {avg_s:.2f}s/partida)")
-    print("=======================\n")
+    
+    # Salva resultados em arquivo
+    filepath = _save_results(agent_a, agent_b, depth_a, depth_b, wins_a, wins_b, draws, elapsed_s, num_matches)
+    print(f"[Concluído] Resultados salvos em: {filepath}\n")
 
 # Para testar (quando o minimax e as heurísticas estiverem integrados):
 if __name__ == "__main__":
     tournaments_to_run = [
         # Teste 1: Nossa heurística top contra a burrinha
-        ("dynamic", "greedy", 60, 60, 50),
+        ("dynamic", "greedy", 60, 60, 25),
         # Teste 2: Heurística posicional contra a burrinha
-        ("static", "greedy", 60, 60, 50),
+        ("static", "greedy", 60, 60, 25),
         # Teste 3: A batalha final (Qual das nossas estratégias é melhor?)
-        ("dynamic", "static", 60, 60, 50),
+        ("dynamic", "static", 60, 60, 25),
 
         # Teste 4: heurística inteligente, mas com profundidade limita vs heurística burra, mas com profundidade máxima (Será que a profundidade compensa a burrice?)
-        ("dynamic", "greedy", 4, 6, 50),
+        ("dynamic", "greedy", 4, 6, 25),
 
         # Teste 5: heurística inteligente 2, mas com profundidade limita vs heurística burra, mas com profundidade máxima (Será que a profundidade compensa a burrice?)
-        ("static", "greedy", 4, 6, 50),
+        ("static", "greedy", 4, 6, 25),
 
         # Teste 6: Duas heurísticas fortes, mas com profundidade limita.
         # Será que o resultado muda com relação ao teste 3?
-        ("static", "dynamic", 4, 4, 50),
+        ("static", "dynamic", 4, 4, 25),
+
+        ("static", "dynamic", 4, 6, 25),
+
+        ("static", "dynamic", 6, 4, 25),
 
 
         #Testar com profundidade 1. A ideia é avaliar as heuristicas de maneira bruta
         # Teste 7
-        ("dynamic", "greedy", 1, 1, 50),
+        ("dynamic", "greedy", 1, 1, 25),
         # Teste 8:
-        ("static", "greedy", 1, 1, 50),
+        ("static", "greedy", 1, 1, 25),
         # Teste 9:
-        ("dynamic", "static", 60, 60, 50)
+        ("dynamic", "static", 1, 1, 25)
     ]
 
     print("=== TORNEIOS PROGRAMADOS ===")

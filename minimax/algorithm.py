@@ -83,7 +83,10 @@ def minimax(
         
         if not opponent_moves:
             # Fim de jogo real: Nenhum dos dois tem jogadas válidas
-            return evaluate(board, player_color, heuristic_type), None
+            winner = evaluate(board, player_color, "greedy")
+            winner = max(min(1.0, winner), -1.0)
+            #Ganhar é mais importante que qualquer coisa, e qualquer vitório é igual a outra
+            return 100000.0 * winner, None
         else:
             # Passa a vez: Chama o minimax com o MESMO tabuleiro, mas inverte o max_player
             # Menor profundidade para evitar loops infinitos caso fiquem passando a vez
