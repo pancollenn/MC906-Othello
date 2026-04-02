@@ -60,6 +60,7 @@ def minimax(
     heuristic_type="dynamic",
     deadline=None,
     preferred_move=None,
+    use_pruning=True,
 ):
     """
     Algoritmo Minimax: player_color: 1 para Preto, -1 para Branco
@@ -67,6 +68,9 @@ def minimax(
     alpha: Melhor opção já garantida para o Maximizador (inicialmente float('-inf'))
     beta: Melhor opção já garantida para o Minimizador (inicialmente float('inf'))
     """
+    global nodes_expanded
+    nodes_expanded += 1
+
     _check_deadline(deadline)
 
     # Define de quem é o turno na simulação atual
@@ -99,6 +103,8 @@ def minimax(
                 player_color,
                 heuristic_type,
                 deadline,
+                None,
+                use_pruning,
             )
             return eval_score, None # None porque não há jogada a ser feita, apenas passa a vez
 
@@ -125,7 +131,7 @@ def minimax(
             temp_board = board.copy()
             temp_board.make_move(move[0], move[1], current_turn_color)
 
-            eval, _ = minimax(
+            eval_score, _ = minimax(
                 temp_board,
                 depth - 1,
                 alpha,
@@ -134,15 +140,17 @@ def minimax(
                 player_color,
                 heuristic_type,
                 deadline,
+                None,
+                use_pruning,
             )
 
-            if eval > max_eval:
-                max_eval = eval
+            if eval_score > max_eval:
+                max_eval = eval_score
                 best_move = move
             
             # Atualiza o Alpha e verifica a Poda
-            alpha = max(alpha, eval)
-            if beta <= alpha:
+            alpha = max(alpha, eval_score)
+            if use_pruning and beta <= alpha:
                 break # Poda Alpha-Beta: o minimizador nunca vai permitir chegar neste ramo
                 
         return max_eval, best_move
@@ -155,7 +163,7 @@ def minimax(
             temp_board = board.copy()
             temp_board.make_move(move[0], move[1], current_turn_color)
 
-            eval, _ = minimax(
+            eval_score, _ = minimax(
                 temp_board,
                 depth - 1,
                 alpha,
@@ -164,22 +172,27 @@ def minimax(
                 player_color,
                 heuristic_type,
                 deadline,
+                None,
+                use_pruning,
             )
 
-            if eval < min_eval:
-                min_eval = eval
+            if eval_score < min_eval:
+                min_eval = eval_score
                 best_move = move
             
             # Atualiza o Beta e verifica a Poda
-            beta = min(beta, eval)
-            if beta <= alpha:
+            beta = min(beta, eval_score)
+            if use_pruning and beta <= alpha:
                 break # Poda Alpha-Beta: o maximizador nunca vai escolher este ramo
             
         return min_eval, best_move
 
 
-def iterative_deepening(board, player_color, time_limit=0.95, max_depth=60, heuristic_type="dynamic"):
+def iterative_deepening(board, player_color, time_limit=0.95, max_depth=60, heuristic_type="dynamic", use_pruning=True):
     """Executa buscas com profundidades crescentes e devolve o melhor resultado completo."""
+    global nodes_expanded
+    nodes_expanded = 0 # Zera o contador a cada nova jogada
+    
     valid_moves = board.get_valid_moves(player_color)
     if not valid_moves:
         return None, None, 0
@@ -202,6 +215,7 @@ def iterative_deepening(board, player_color, time_limit=0.95, max_depth=60, heur
                 heuristic_type,
                 deadline,
                 preferred_move,
+                use_pruning,
             )
 
             if move is not None:
@@ -212,4 +226,4 @@ def iterative_deepening(board, player_color, time_limit=0.95, max_depth=60, heur
         except SearchTimeout:
             break
 
-    return best_score, best_move, completed_depth
+    return best_score, best_move, completed_depth, nodes_expanded
