@@ -5,17 +5,18 @@ from othello.game import Game
 from minimax.algorithm import iterative_deepening
 
 FPS = 60
-AI_TIME_LIMIT_SECONDS = 2.5
+AI_TIME_LIMIT_SECONDS = 0.95
 AI_MAX_DEPTH = 60
 
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption('Othello')
+HEURISTIC = "dynamic" # "dynamic", "static" ou "greedy"
 
 def main():
     run = True
     clock = pygame.time.Clock()
     game = Game(WIN)
-    
+    depths = []
     while run:
         clock.tick(FPS)
 
@@ -26,9 +27,10 @@ def main():
                 -1,
                 time_limit=AI_TIME_LIMIT_SECONDS,
                 max_depth=AI_MAX_DEPTH,
-                heuristic_type="dynamic",
+                heuristic_type=HEURISTIC,
             )
             print(f"IA concluiu profundidade {depth}")
+            depths.append(depth)
             if move:
                 game.select(move[0], move[1])
 
@@ -44,6 +46,12 @@ def main():
 
         game.update()
 
+
+    depths.sort()
+
+    print("Profundidade mediana", depths[len(depths) // 2])  # Imprime a mediana das profundidades alcançadas pela IA
+    print("Profundidade média", sum(depths) / len(depths))
     pygame.quit()
+
 
 main()
