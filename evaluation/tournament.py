@@ -230,40 +230,41 @@ def run_tournament_parallel(agent_a, agent_b, depth_a=4, depth_b=4, num_matches=
 
 # Para testar (quando o minimax e as heurísticas estiverem integrados):
 if __name__ == "__main__":
+    num_matches = 24 # tentar colocar multiplos de 12
     tournaments_to_run = [
         # Teste 1: Nossa heurística top contra a burrinha
-        ("dynamic", "greedy", 60, 60, 25),
+        ("dynamic", "greedy", 60, 60, num_matches),
         # Teste 2: Heurística posicional contra a burrinha
-        ("static", "greedy", 60, 60, 25),
+        ("static", "greedy", 60, 60, num_matches),
         # Teste 3: A batalha final (Qual das nossas estratégias é melhor?)
-        ("dynamic", "static", 60, 60, 25),
+        ("dynamic", "static", 60, 60, num_matches),
 
         # Teste 4: heurística inteligente, mas com profundidade limita vs heurística burra, mas com profundidade máxima (Será que a profundidade compensa a burrice?)
-        ("dynamic", "greedy", 4, 6, 25),
+        ("dynamic", "greedy", 4, 6, num_matches),
 
         # Teste 5: heurística inteligente 2, mas com profundidade limita vs heurística burra, mas com profundidade máxima (Será que a profundidade compensa a burrice?)
-        ("static", "greedy", 4, 6, 25),
+        ("static", "greedy", 4, 6, num_matches),
 
         # Teste 6: Duas heurísticas fortes, mas com profundidade limita.
         # Será que o resultado muda com relação ao teste 3?
-        ("static", "dynamic", 4, 4, 25),
+        ("static", "dynamic", 4, 4, num_matches),
 
-        ("static", "dynamic", 4, 6, 25),
+        ("static", "dynamic", 4, 6, num_matches),
 
-        ("static", "dynamic", 6, 4, 25),
+        ("static", "dynamic", 6, 4, num_matches),
 
 
         #Testar com profundidade 1. A ideia é avaliar as heuristicas de maneira bruta
         # Teste 7
-        ("dynamic", "greedy", 1, 1, 25),
+        ("dynamic", "greedy", 1, 1, num_matches),
         # Teste 8:
-        ("static", "greedy", 1, 1, 25),
+        ("static", "greedy", 1, 1, num_matches),
         # Teste 9:
-        ("dynamic", "static", 1, 1, 25),
+        ("dynamic", "static", 1, 1, num_matches),
 
-        ("static", "static", 4, 6, 25),
-        ("dynamic", "dynamic", 4, 6, 25),
-        ("greedy", "greedy", 4, 6, 25),
+        ("static", "static", 4, 6, num_matches),
+        ("dynamic", "dynamic", 4, 6, num_matches),
+        ("greedy", "greedy", 4, 6, num_matches),
     ]
 
     print("=== TORNEIOS PROGRAMADOS ===")
