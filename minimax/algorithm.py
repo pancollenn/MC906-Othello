@@ -50,6 +50,9 @@ def order_moves(valid_moves):
     
     return [item[1] for item in move_scores]
 
+Nodes = 0
+Times = 0
+
 def minimax(
     board,
     depth,
@@ -74,7 +77,9 @@ def minimax(
     
     # Casos base: profundidade alcançada ou fim de jogo
     valid_moves = board.get_valid_moves(current_turn_color)
-
+    global Nodes, Times
+    Nodes+=len(valid_moves)
+    Times+=1
     # Caso precise passar a vez
     if not valid_moves:
         # Verifica se o oponente tem movimentos

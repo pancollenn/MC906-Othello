@@ -4,6 +4,7 @@ from othello.constants import WIDTH, HEIGHT, SQUARE_SIZE
 from othello.game import Game
 from minimax.algorithm import iterative_deepening
 
+
 FPS = 60
 AI_TIME_LIMIT_SECONDS = 0.95
 AI_MAX_DEPTH = 60
@@ -51,6 +52,8 @@ def main():
 
     print("Profundidade mediana", depths[len(depths) // 2])  # Imprime a mediana das profundidades alcançadas pela IA
     print("Profundidade média", sum(depths) / len(depths))
+    from minimax.algorithm import Nodes, Times
+    print("Média de nós expandidos", Nodes / Times)
     pygame.quit()
 
 
